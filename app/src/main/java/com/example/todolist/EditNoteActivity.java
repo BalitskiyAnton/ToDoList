@@ -17,6 +17,7 @@ public class EditNoteActivity extends AppCompatActivity {
     private RadioButton radioButton1;
     private RadioButton radioButton2;
     private Button button;
+    private Database database = Database.getInstance();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +48,11 @@ public class EditNoteActivity extends AppCompatActivity {
     private void saveNote() {
         String text = editText.getText().toString().trim();
         int priority = getPriority();
+        int id = database.getNotes().size();
+        Note note = new Note(id, text, priority);
+        database.add(note);
+
+        finish();
     }
 
     private int getPriority() {
