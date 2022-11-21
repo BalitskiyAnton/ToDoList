@@ -5,6 +5,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -17,13 +19,15 @@ public class EditNoteActivity extends AppCompatActivity {
     private RadioButton radioButton1;
     private RadioButton radioButton2;
     private Button button;
-    private Database database = Database.getInstance();
+    private NoteDataBase noteDataBase;
+    private Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_note);
 
+        noteDataBase = NoteDataBase.getInstance(getApplication());
         initViews();
 
         radioButton1.setChecked(true);
@@ -32,6 +36,7 @@ public class EditNoteActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 saveNote();
+
             }
         });
 
@@ -48,11 +53,23 @@ public class EditNoteActivity extends AppCompatActivity {
     private void saveNote() {
         String text = editText.getText().toString().trim();
         int priority = getPriority();
-        int id = database.getNotes().size();
-        Note note = new Note(id, text, priority);
-        database.add(note);
+        Note note = new Note(text, priority);
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                noteDataBase.notesDao().add(note);
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        finish();
+                    }
+                });
+            }
+        });
+        thread.start();
 
-        finish();
+
+
     }
 
     private int getPriority() {

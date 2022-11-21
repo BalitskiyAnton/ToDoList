@@ -2,6 +2,8 @@ package com.example.todolist;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -15,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
@@ -22,15 +25,18 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private FloatingActionButton floatingActionButton;
 
-    private Database database = Database.getInstance();
+    private NoteDataBase noteDataBase;
 
     private NoteAdapter adapter;
+
+    private Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        noteDataBase = NoteDataBase.getInstance(getApplication());
         initViews();
 
         adapter = new NoteAdapter();
@@ -60,8 +66,21 @@ public class MainActivity extends AppCompatActivity {
                 int position = viewHolder.getAdapterPosition();
                 Note note = adapter.getNotes().get(position);
 
-                database.remove(note.getId());
-                showNotes();
+                Thread thread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        noteDataBase.notesDao().remove(note.getId());
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                showNotes();
+                            }
+                        });
+                    }
+                });
+                thread.start();
+
+
 
             }
         });
@@ -92,7 +111,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showNotes() {
-       adapter.setNotes(database.getNotes());
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                List<Note>notes = noteDataBase.notesDao().getNotes();
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        adapter.setNotes(notes);
+                    }
+                });
+
+            }
+        });
+        thread.start();
+
 
 
     }
